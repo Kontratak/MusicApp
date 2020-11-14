@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:deneme2/constants.dart';
 import 'package:flutter/material.dart';
@@ -54,6 +54,7 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
   void initState() {
     // TODO: implement initState
     super.initState();
+    handleAppLifecycleState();
     //müziğin detaylarını alıyorum
     title = widget.songName;
     artist = widget.singer;
@@ -306,6 +307,27 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
   Future<bool> _onBackPressed() async{
     Navigator.pop(context); //geri tuşuna basıldığında songs kısmına dönmek için
     return true;
+  }
+
+  handleAppLifecycleState() {
+    AppLifecycleState _lastLifecyleState;
+    SystemChannels.lifecycle.setMessageHandler((msg) {
+
+      print('SystemChannels> $msg');
+      switch (msg) {
+        case "AppLifecycleState.paused":
+
+          _lastLifecyleState = AppLifecycleState.paused;
+          break;
+        case "AppLifecycleState.inactive":
+          _lastLifecyleState = AppLifecycleState.inactive;
+          break;
+        case "AppLifecycleState.resumed":
+          _lastLifecyleState = AppLifecycleState.resumed;
+          break;
+        default:
+      }
+    });
   }
 
 
