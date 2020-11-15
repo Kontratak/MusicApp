@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:deneme2/ContainerFlip.dart';
+import 'package:flip_card/flip_card.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:deneme2/constants.dart';
@@ -38,7 +40,7 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
   StreamSubscription _durationSubscription;
   StreamSubscription _positionSubscription;
   StreamSubscription _playerDurationSubscription;
-
+  GlobalKey<FlipCardState> cardKey;
   @override
   void onResume() {
     // Implement your code inside here
@@ -121,7 +123,7 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
       hasPreviousTrack: false,
     );
     audioPlayer.play(url, isLocal: true); //başlangıçta tıklanınca gelinen dosya yolunu alıp oynatıyorum
-
+    cardKey = GlobalKey<FlipCardState>();
   }
 
   @override
@@ -162,11 +164,33 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
             ),
 
             SizedBox(height: 80.0,),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(15.0),
-              child: Image.asset(albumImage, fit: BoxFit.cover, //müziğin resmi
-                height: 250,
-                width: 250,),
+            FlipCard(
+              key: cardKey,
+              flipOnTouch: false,
+              front: ClipRRect(
+                borderRadius: BorderRadius.circular(15.0),
+                child: Image.asset(albumImage, fit: BoxFit.cover, //müziğin resmi
+                  height: 250,
+                  width: 250,),
+              ),
+              back: ClipRRect(
+                borderRadius: BorderRadius.circular(15.0), //buradaki cliprrectin içine yazıyı yaz
+                child: Container(
+                  height: 250,
+                  width: 250,
+                  color: Colors.orange,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text("faskfnasklfnaskşfmkasnfjasnjasmfpomasofasıofnasıfnasmaponamaosmfoasfmpoasmfopasmfapomfponfaso" , style: TextStyle( //müzik başlığı
+                        fontFamily: 'Nunito-Bold',
+                        letterSpacing: 1.0,
+                        fontSize: 15,
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold
+                    ),),
+                  ),
+                )
+              ),
             ),
             SizedBox(height: 20.0,),
             Center(
@@ -177,7 +201,7 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
                   width: 160,
                   child: InkWell(
                     onTap: (){
-
+                      cardKey.currentState.toggleCard();
                     },
                     child: Padding(
                       padding: const EdgeInsets.only(right: 8,left: 8),
