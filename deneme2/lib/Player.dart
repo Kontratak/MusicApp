@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:deneme2/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:need_resume/need_resume.dart';
 import 'main.dart';
 
 class Player extends StatefulWidget {
@@ -20,8 +21,9 @@ class Player extends StatefulWidget {
   _PlayerState createState() => _PlayerState();
 }
 
-class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
+class _PlayerState extends ResumableState<Player> with SingleTickerProviderStateMixin{
 
+  int durationOnPause = 0;
   double _value = 0.0;
   String title;
   String artist;
@@ -37,11 +39,19 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
   StreamSubscription _positionSubscription;
   StreamSubscription _playerDurationSubscription;
 
-  void _setValue(double value) {
-    setState(() {
-      _value = value;
-      //audioPlayer.seek(Duration(seconds: _value.toInt()),);
-    });
+  @override
+  void onResume() {
+    // Implement your code inside here
+
+   audioPlayer.setUrl(songs[index].url);
+   audioPlayer.seek(Duration(milliseconds: durationOnPause));
+  }
+
+  @override
+  void onPause() {
+    // Implement your code inside here
+
+    print('HomeScreen is paused!');
   }
 
   AnimationController animationController;
@@ -54,7 +64,6 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
   void initState() {
     // TODO: implement initState
     super.initState();
-    handleAppLifecycleState();
     //müziğin detaylarını alıyorum
     title = widget.songName;
     artist = widget.singer;
@@ -85,6 +94,7 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
     _playerDurationSubscription = audioPlayer.onAudioPositionChanged.listen((Duration  p) => {
         setState(() {
           durationnow = p.inMilliseconds.toString();
+          durationOnPause = p.inMilliseconds;
           durationnow = formatMillitoDisplay(durationnow);
         }),
     });
@@ -110,21 +120,20 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
       hasNextTrack: true,
       hasPreviousTrack: false,
     );
+    audioPlayer.play(url, isLocal: true); //başlangıçta tıklanınca gelinen dosya yolunu alıp oynatıyorum
+
   }
 
   @override
   void dispose() {
     // TODO: implement dispose
-    super.dispose();
     animationController.dispose();
+    super.dispose();
   }
 
 
   @override
   Widget build(BuildContext context) {
-    audioPlayer.play(url, isLocal: true); //başlangıçta tıklanınca gelinen dosya yolunu alıp oynatıyorum
-    MusicProp.musicname = title;
-    MusicProp.musicartist = artist;
     return WillPopScope(
       onWillPop: _onBackPressed,
       child: Scaffold(
@@ -158,6 +167,37 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
               child: Image.asset(albumImage, fit: BoxFit.cover, //müziğin resmi
                 height: 250,
                 width: 250,),
+            ),
+            SizedBox(height: 20.0,),
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15.0),
+                child: Container(
+                  color: Colors.orange.withOpacity(0.5),
+                  width: 160,
+                  child: InkWell(
+                    onTap: (){
+
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 8,left: 8),
+                      child: Row(
+                        children: [
+                          Icon(Icons.music_note_outlined),
+                          SizedBox(width: 10,),
+                          Text("Tap To See The Lyrics!" , style: TextStyle( //müzik başlığı
+                              fontFamily: 'Nunito-Bold',
+                              letterSpacing: 1.0,
+                              fontSize: 8,
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold
+                          ),),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
             SizedBox(height: 20.0,),
             Text(title.length > 20 ? title.substring(0,20) : title, style: TextStyle( //müzik başlığı
@@ -227,8 +267,7 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
                               songs[index].url, isLocal: true);
                         }
                         else if(index == -1){
-                          index = songs.length-1;
-                          await audioPlayer.setUrl(songs[index].url);
+                          index = 0;
                         }
                         setState(() { //tıklandığında müziğin isminin, albüm resminin ve sarkıcısının değişmesi
                           title = songs[index].title;
@@ -237,7 +276,6 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
                           MusicProp.musicartist = artist;
                           songduration = songs[index].duration;
                           formatMillitoDisplay(songduration);
-                          durationnow = "0";
                         });
                         print(index);
                       },
@@ -266,8 +304,7 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
                             songs[++index].url, isLocal: true);
                       }
                       else if(index == songs.length){
-                        index = 0;
-                        await audioPlayer.setUrl(songs[index].url);
+                        index = songs.length-1;
                       }
                       setState(() {
                         title = songs[index].title;
@@ -276,7 +313,6 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
                         MusicProp.musicartist = artist;
                         songduration = songs[index].duration;
                         formatMillitoDisplay(songduration);
-                        durationnow = "0";
                       });
                     },
                       child: CircleAvatar(
@@ -308,29 +344,6 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
     Navigator.pop(context); //geri tuşuna basıldığında songs kısmına dönmek için
     return true;
   }
-
-  handleAppLifecycleState() {
-    AppLifecycleState _lastLifecyleState;
-    SystemChannels.lifecycle.setMessageHandler((msg) {
-
-      print('SystemChannels> $msg');
-      switch (msg) {
-        case "AppLifecycleState.paused":
-
-          _lastLifecyleState = AppLifecycleState.paused;
-          break;
-        case "AppLifecycleState.inactive":
-          _lastLifecyleState = AppLifecycleState.inactive;
-          break;
-        case "AppLifecycleState.resumed":
-          _lastLifecyleState = AppLifecycleState.resumed;
-          break;
-        default:
-      }
-    });
-  }
-
-
 
   void _handleOnPressed(){ //oynat durdur basıldığında çalışan kısım
     setState(() async {

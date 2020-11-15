@@ -107,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return FutureBuilder(
       future: getSongProperties(),
       builder: (context,AsyncSnapshot snapshot){
-        if(songs.length < 130){
+        if(songs.length <= 0){
           return CircularProgressIndicator();
         }
         else{
@@ -188,7 +188,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             ClipRRect(
               borderRadius: BorderRadius.circular(10.0),
-              child: Image.asset(asset, fit: BoxFit.cover, height:100, width: 120,),
+              child: Image.asset(asset, fit: BoxFit.cover, height:70, width: 90,),
             ),
             SizedBox(width: 10.0,),
             Column(
@@ -228,7 +228,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 alreadySaved ? Icons.favorite : Icons.favorite_border,
                 color: alreadySaved ? Colors.red : null,
               ),
-            )
+            ),
           ],
         ),
       ),
