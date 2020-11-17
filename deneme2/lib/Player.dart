@@ -132,7 +132,27 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
     animationController.dispose();
     super.dispose();
   }
+  Future<String> _getSongLyrics(var title,var artist) async {
 
+
+    final String uri =
+        "https://api.musixmatch.com/ws/1.1/matcher.lyrics.get?q_track=${title}&q_artist=${artist}&apikey=f2d53f311491e9df70ac74d782e2bdd0";
+    var uri2= Uri.encodeFull(uri);
+    var response = await http
+        .get(Uri.encodeFull(uri2), headers: {"Accept": "application/json"});
+
+    setState(() {
+      var convertToJson = jsonDecode(response.body);
+      if(convertToJson!=null)
+        song = convertToJson['message']['body']['lyrics'];
+
+
+
+
+    });
+
+    return "success";
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +201,7 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
                   color: Colors.orange,
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: Text("faskfnasklfnaskşfmkasnfjasnjasmfpomasofasıofnasıfnasmaponamaosmfoasfmpoasmfopasmfapomfponfaso" , style: TextStyle( //müzik başlığı
+                    child: Text((song['lyrics_body']!=null?song['lyrics_body']:"no lyrics was found") , style: TextStyle( //müzik başlığı
                         fontFamily: 'Nunito-Bold',
                         letterSpacing: 1.0,
                         fontSize: 15,
