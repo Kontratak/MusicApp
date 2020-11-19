@@ -9,7 +9,7 @@ import 'package:need_resume/need_resume.dart';
 import 'main.dart';
 
 class Player extends StatefulWidget {
-  Player({Key key,this.songName,this.singer,this.image,this.duration, this.songPath, this.player, this.playlistsongs, this.index}) : super(key: key);
+  Player({Key key,this.songName,this.singer,this.image,this.duration, this.songPath, this.player, this.playlistsongs, this.index, this.songlyrics}) : super(key: key);
 
   final String songName;
   final String singer;
@@ -18,6 +18,7 @@ class Player extends StatefulWidget {
   final String songPath;
   final AudioPlayer player;
   final List<Song> playlistsongs;
+  final String songlyrics;
   final int index;
   @override
   _PlayerState createState() => _PlayerState();
@@ -36,6 +37,7 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
   List<Song> songs;
   int index;
   String durationnow = "0";
+  String lyrics;
   StreamSubscription _playerCompleteSubscription;
   StreamSubscription _durationSubscription;
   StreamSubscription _positionSubscription;
@@ -76,6 +78,7 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
     songs = widget.playlistsongs;
     index = widget.index;
     songduration = widget.duration;
+    lyrics = widget.songlyrics;
     print(index);
     animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 300));
     _playerCompleteSubscription =
@@ -132,27 +135,6 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
     animationController.dispose();
     super.dispose();
   }
-  Future<String> _getSongLyrics(var title,var artist) async {
-
-
-    final String uri =
-        "https://api.musixmatch.com/ws/1.1/matcher.lyrics.get?q_track=${title}&q_artist=${artist}&apikey=f2d53f311491e9df70ac74d782e2bdd0";
-    var uri2= Uri.encodeFull(uri);
-    var response = await http
-        .get(Uri.encodeFull(uri2), headers: {"Accept": "application/json"});
-
-    setState(() {
-      var convertToJson = jsonDecode(response.body);
-      if(convertToJson!=null)
-        song = convertToJson['message']['body']['lyrics'];
-
-
-
-
-    });
-
-    return "success";
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -183,7 +165,7 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
               ),
             ),
 
-            SizedBox(height: 80.0,),
+            SizedBox(height: 20.0,),
             FlipCard(
               key: cardKey,
               flipOnTouch: false,
@@ -201,13 +183,23 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
                   color: Colors.orange,
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: Text((song['lyrics_body']!=null?song['lyrics_body']:"no lyrics was found") , style: TextStyle( //müzik başlığı
-                        fontFamily: 'Nunito-Bold',
-                        letterSpacing: 1.0,
-                        fontSize: 15,
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold
-                    ),),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.vertical,
+                            child: Text((lyrics!=null?lyrics:"no lyrics was found") , style: TextStyle( //müzik başlığı
+                                fontFamily: 'Nunito-Bold',
+                                letterSpacing: 1.0,
+                                fontSize: 15,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold
+                            ),),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               ),
