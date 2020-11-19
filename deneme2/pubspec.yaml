@@ -32,6 +32,7 @@ dependencies:
   need_resume: ^1.0.5+1
   marquee: ^1.6.1
   flip_card: ^0.4.4
+  connectivity: ^2.0.2
 
 dev_dependencies:
   flutter_test:

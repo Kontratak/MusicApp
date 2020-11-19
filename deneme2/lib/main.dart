@@ -1,12 +1,10 @@
-import 'dart:convert';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:deneme2/Player.dart';
 import 'package:deneme2/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_audio_query/flutter_audio_query.dart';
 import 'dart:async';
-import 'package:http/http.dart' as http;
+
 
 void main() {
   runApp(MyApp());
@@ -28,26 +26,6 @@ class MyApp extends StatelessWidget {
 }
 
 
-//feature olarak zaten alıyoduk ben sadece albums kısmına çekilecek şekilde yaptım
-//Player kısmına geçerken parametre olarak getiriyorum yani müzik listesindeki bi iteme tıkladığında çekip player'a gönderiyor
-Future<String> _getSongLyrics(String title,String artist) async {
-  title = title.replaceAll(' ', "%20");
-  artist = artist.replaceAll(' ', "%20");
-  var songlyric;
-  final String uri = "https://orion.apiseeds.com/api/music/lyric/$artist/$title?apikey=uF0lVgHOgQTMZGpYbS5IOzngYwfnqXM33tWCzlPsOtOOcC67CT23mLAEdepBypRn";
-  print(uri);
-  final responseData = await http.get(uri,headers: {"Accept": "application/json"});
-  if(responseData.statusCode == 200){
-    var convertToJson = jsonDecode(responseData.body);
-    if(convertToJson!=null)
-      songlyric = convertToJson['result']['track']['text'];
-    print(songlyric);
-  }
-  else{
-    songlyric = "Lyrics Not Found";
-  }
-  return songlyric;
-}
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
@@ -201,12 +179,10 @@ class _MyHomePageState extends State<MyHomePage> {
     final alreadySaved = favourites.contains(asset);
     return InkWell(
       onTap: (){
-        _getSongLyrics(title,artist).then((String result){
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => Player(singer: artist,songName: title,duration: duration,songPath: url,image: asset,player: audioPlayer,playlistsongs: songs,index: index,songlyrics: result,)),
+            MaterialPageRoute(builder: (context) => Player(singer: artist,songName: title,duration: duration,songPath: url,image: asset,player: audioPlayer,playlistsongs: songs,index: index,)),
           );
-        });
       },
       child: Container(
         child: Row(

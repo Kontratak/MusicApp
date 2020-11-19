@@ -1,15 +1,16 @@
 import 'dart:async';
-import 'package:deneme2/ContainerFlip.dart';
+import 'package:connectivity/connectivity.dart';
 import 'package:flip_card/flip_card.dart';
-import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:deneme2/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:need_resume/need_resume.dart';
 import 'main.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class Player extends StatefulWidget {
-  Player({Key key,this.songName,this.singer,this.image,this.duration, this.songPath, this.player, this.playlistsongs, this.index, this.songlyrics}) : super(key: key);
+  Player({Key key,this.songName,this.singer,this.image,this.duration, this.songPath, this.player, this.playlistsongs, this.index}) : super(key: key);
 
   final String songName;
   final String singer;
@@ -18,7 +19,6 @@ class Player extends StatefulWidget {
   final String songPath;
   final AudioPlayer player;
   final List<Song> playlistsongs;
-  final String songlyrics;
   final int index;
   @override
   _PlayerState createState() => _PlayerState();
@@ -43,6 +43,7 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
   StreamSubscription _positionSubscription;
   StreamSubscription _playerDurationSubscription;
   GlobalKey<FlipCardState> cardKey;
+  bool lyricsfetched = false;
   @override
   void onResume() {
     // Implement your code inside here
@@ -78,7 +79,6 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
     songs = widget.playlistsongs;
     index = widget.index;
     songduration = widget.duration;
-    lyrics = widget.songlyrics;
     print(index);
     animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 300));
     _playerCompleteSubscription =
@@ -110,21 +110,6 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
     _durationSubscription = audioPlayer.onDurationChanged.listen((duration) {
       setState(() => _duration = duration);
     });
-    audioPlayer.startHeadlessService();
-
-    // set at least title to see the notification bar on ios.
-    audioPlayer.setNotification(
-      title: 'KontraMusicPlayer',
-      artist: artist,
-      albumTitle: title,
-      imageUrl: albumImage,
-      // forwardSkipInterval: const Duration(seconds: 30), // default is 30s
-      // backwardSkipInterval: const Duration(seconds: 30), // default is 30s
-      duration: Duration(milliseconds: int.parse(songduration)),
-      elapsedTime: Duration(seconds: 0),
-      hasNextTrack: true,
-      hasPreviousTrack: false,
-    );
     audioPlayer.play(url, isLocal: true); //başlangıçta tıklanınca gelinen dosya yolunu alıp oynatıyorum
     cardKey = GlobalKey<FlipCardState>();
   }
@@ -135,6 +120,28 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
     animationController.dispose();
     super.dispose();
   }
+
+  //feature olarak zaten alıyoduk ben sadece albums kısmına çekilecek şekilde yaptım
+//Player kısmına geçerken parametre olarak getiriyorum yani müzik listesindeki bi iteme tıkladığında çekip player'a gönderiyor
+  Future<String> _getSongLyrics(String title,String artist) async {
+    title = title.replaceAll(' ', "%20");
+    artist = artist.replaceAll(' ', "%20");
+    var songlyric;
+    final String uri = "https://orion.apiseeds.com/api/music/lyric/$artist/$title?apikey=uF0lVgHOgQTMZGpYbS5IOzngYwfnqXM33tWCzlPsOtOOcC67CT23mLAEdepBypRn";
+    print(uri);
+    final responseData = await http.get(uri,headers: {"Accept": "application/json"});
+    if(responseData.statusCode == 200){
+      var convertToJson = jsonDecode(responseData.body);
+      if(convertToJson!=null)
+        songlyric = convertToJson['result']['track']['text'];
+      print(songlyric);
+    }
+    else{
+      songlyric = "Lyrics Not Found";
+    }
+    return songlyric;
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -172,30 +179,25 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
               front: ClipRRect(
                 borderRadius: BorderRadius.circular(15.0),
                 child: Image.asset(albumImage, fit: BoxFit.cover, //müziğin resmi
-                  height: 250,
-                  width: 250,),
+                  height: 300,
+                  width: 300,),
               ),
               back: ClipRRect(
                 borderRadius: BorderRadius.circular(15.0), //buradaki cliprrectin içine yazıyı yaz
                 child: Container(
-                  height: 250,
-                  width: 250,
+                  height: 300,
+                  width: 300,
                   color: Colors.orange,
                   child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.all(12.0),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Expanded(
                           child: SingleChildScrollView(
                             scrollDirection: Axis.vertical,
-                            child: Text((lyrics!=null?lyrics:"no lyrics was found") , style: TextStyle( //müzik başlığı
-                                fontFamily: 'Nunito-Bold',
-                                letterSpacing: 1.0,
-                                fontSize: 15,
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold
-                            ),),
+                            child: _setLyricsStatus(),
                           ),
                         ),
                       ],
@@ -212,7 +214,20 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
                   color: Colors.orange.withOpacity(0.5),
                   width: 160,
                   child: InkWell(
-                    onTap: (){
+                    onTap: () async{
+                      var connectivityResult = await (Connectivity().checkConnectivity());
+                      if (connectivityResult == ConnectivityResult.none) {
+                        lyrics = "You're not Connected To Internet";
+                      } else {
+                        if(lyricsfetched == false){
+                          _getSongLyrics(title,artist).then((String result){
+                            setState(() {
+                              lyrics = result;
+                              lyricsfetched = true;
+                            });
+                          });
+                        }
+                      }
                       cardKey.currentState.toggleCard();
                     },
                     child: Padding(
@@ -235,7 +250,7 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
                 ),
               ),
             ),
-            SizedBox(height: 20.0,),
+            SizedBox(height: 15.0,),
             Text(title.length > 20 ? title.substring(0,20) : title, style: TextStyle( //müzik başlığı
                 fontFamily: 'Nunito-Bold',
                 letterSpacing: 1.0,
@@ -243,7 +258,7 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
                 color: Colors.black,
                 fontWeight: FontWeight.bold
             ),),
-            SizedBox(height: 15.0,),
+            SizedBox(height: 10.0,),
             Text(artist, style: TextStyle( //şarkıcı
               fontFamily: 'Nunito-Bold',
               letterSpacing: 1.0,
@@ -252,7 +267,7 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
             ),),
             Spacer(),
             Padding(
-              padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20.0),
+              padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 10.0),
               child: Row(
                 children: [
                   Text(durationnow, style: TextStyle( //şarkıcı
@@ -291,7 +306,7 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
             ),
 
             Padding(
-              padding: const EdgeInsets.only(left: 30.0, right: 30.0, top: 20.0,bottom: 40.0),
+              padding: const EdgeInsets.only(left: 30.0, right: 30.0, top: 15.0,bottom: 30.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: <Widget>[
@@ -299,8 +314,11 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
                       onTap : () async{ //geri tuşu
                         index--;
                         if(index > 0) {
-                          await audioPlayer.play(
-                              songs[index].url, isLocal: true);
+                          await audioPlayer.play(songs[index].url, isLocal: true);
+                          lyrics = null;
+                          lyricsfetched = false;
+                          if(cardKey.currentState.isFront == false)
+                            cardKey.currentState.toggleCard();
                         }
                         else if(index == -1){
                           index = 0;
@@ -336,8 +354,11 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
                     onTap: () async {
                       index++;//ileri gitmek için geri gitmeyle aynı
                       if(index < songs.length) {
-                        await audioPlayer.play(
-                            songs[++index].url, isLocal: true);
+                        await audioPlayer.play(songs[++index].url, isLocal: true);
+                        lyrics = null;
+                        lyricsfetched = false;
+                        if(cardKey.currentState.isFront == false)
+                          cardKey.currentState.toggleCard();
                       }
                       else if(index == songs.length){
                         index = songs.length-1;
@@ -365,6 +386,36 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
 
       ),
     );
+  }
+
+  Widget _setLyricsStatus(){
+    if(lyrics == null)
+      return Padding(
+        padding: const EdgeInsets.only(top: 110),//boyut/2-45
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 10,),
+            Text("Loading Lyrics" , style: TextStyle( //müzik başlığı
+            fontFamily: 'Nunito-Bold',
+            letterSpacing: 1.0,
+            fontSize: 15,
+            color: Colors.black,
+            fontWeight: FontWeight.bold
+          ),),
+          ],
+        ),
+      );
+    else
+      return Text(lyrics , style: TextStyle( //müzik başlığı
+          fontFamily: 'Nunito-Bold',
+          letterSpacing: 1.0,
+          fontSize: 20,
+          color: Colors.black,
+          fontWeight: FontWeight.bold
+      ),);
   }
 
   String formatMillitoDisplay(String toformat){
