@@ -408,6 +408,24 @@ class _PlayerState extends ResumableState<Player> with SingleTickerProviderState
           ],
         ),
       );
+    else if(lyrics == "You're not Connected To Internet"){
+      return Padding(
+        padding: const EdgeInsets.only(top: 130),//boyut/2-45
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text("You're not Connected To Internet" , style: TextStyle( //müzik başlığı
+                fontFamily: 'Nunito-Bold',
+                letterSpacing: 1.0,
+                fontSize: 15,
+                color: Colors.black,
+                fontWeight: FontWeight.bold
+            ),),
+          ],
+        ),
+      );
+    }
     else
       return Text(lyrics , style: TextStyle( //müzik başlığı
           fontFamily: 'Nunito-Bold',
